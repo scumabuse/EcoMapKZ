@@ -27,10 +27,6 @@ const fadeUp: import('framer-motion').Variants = {
   },
 };
 
-const slideInLeft: import('framer-motion').Variants = {
-  hidden:  { opacity: 0, x: -24 },
-  visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: 'easeOut' } },
-};
 
 /* ── Feature data ───────────────────────────────── */
 const features = [

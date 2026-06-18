@@ -1,8 +1,7 @@
 import { Outlet, useLocation, NavLink } from 'react-router-dom';
 import Sidebar from './Sidebar';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Home, Map, PlusCircle, TrendingUp, Shield } from 'lucide-react';
-import { useAuth } from '../../contexts/AuthContext';
+import { Home, Map, PlusCircle, TrendingUp } from 'lucide-react';
 
 const mobileNavItems = [
   { to: '/',         label: 'Главная',  icon: Home },

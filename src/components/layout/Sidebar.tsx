@@ -1,7 +1,7 @@
 import { motion, AnimatePresence } from 'framer-motion';
 import { NavLink, useNavigate, useLocation } from 'react-router-dom';
 import {
-  Home, Map, PlusCircle, TrendingUp, Shield,
+  Home, Map, PlusCircle, TrendingUp,
   Leaf, Menu, X, LogOut
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';

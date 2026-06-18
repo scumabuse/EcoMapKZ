@@ -226,7 +226,7 @@ export default function AdminPage() {
             disabled={bulkRunning}
             style={{
               display: 'flex', alignItems: 'center', gap: 8,
-              padding: '10px 20px', borderRadius: 12, border: 'none', cursor: bulkRunning ? 'not-allowed' : 'pointer',
+              padding: '10px 20px', borderRadius: 12, cursor: bulkRunning ? 'not-allowed' : 'pointer',
               background: bulkRunning ? 'rgba(74,222,128,0.06)' : 'rgba(74,222,128,0.12)',
               color: 'var(--green)', fontWeight: 700, fontSize: 13,
               border: '1px solid rgba(74,222,128,0.2)',

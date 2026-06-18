@@ -86,7 +86,7 @@ export default function AddReportPage() {
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
   const [flyToLocation, setFlyToLocation] = useState<{ lat: number; lng: number; bbox?: [number, number, number, number] } | null>(null);
-  const [step, setStep] = useState<'idle' | 'uploading' | 'analyzing' | 'saving' | 'success'>('idle');
+  const [step, setStep] = useState<Step>('idle');
   const [isLocating, setIsLocating] = useState(false);
   const [aiResult, setAiResult] = useState<{
     dump_detected: boolean; confidence: number;
@@ -108,7 +108,7 @@ export default function AddReportPage() {
         setFlyToLocation({ lat: latitude, lng: longitude });
         toast.success('Геолокация определена!', { icon: '📍' });
       },
-      (err) => {
+      () => {
         setIsLocating(false);
         toast.error('Не удалось определить местоположение. Проверьте разрешения.', { icon: '⚠️' });
       },
@@ -180,7 +180,7 @@ export default function AddReportPage() {
       setStep('done');
       toast.success('Обращение зарегистрировано!');
       setTimeout(() => navigate('/map'), 3000);
-    } catch (err) {
+    } catch (err: any) {
       setStep('idle');
       toast.error(err instanceof Error ? err.message : 'Произошла ошибка');
     }

@@ -10,7 +10,7 @@ const floatVariants = {
   initial: { opacity: 0, y: 40, scale: 0.94 },
   animate: {
     opacity: 1, y: 0, scale: 1,
-    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] },
+    transition: { duration: 0.55, ease: [0.16, 1, 0.3, 1] as const },
   },
 };
 
@@ -18,7 +18,7 @@ const fieldVariants = {
   initial: { opacity: 0, x: -16 },
   animate: (i: number) => ({
     opacity: 1, x: 0,
-    transition: { delay: 0.3 + i * 0.1, duration: 0.4, ease: 'easeOut' },
+    transition: { delay: 0.3 + i * 0.1, duration: 0.4, ease: 'easeOut' as const },
   }),
 };
 
