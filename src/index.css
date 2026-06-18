@@ -655,4 +655,15 @@ body::before {
   .map-search-wrap { left: 88px !important; }
 }
 
-
+/* Login / Register pages: ensure form card doesn't overflow on small phones */
+@media (max-width: 480px) {
+  /* Target auth page form cards */
+  .auth-card {
+    padding: 28px 20px !important;
+    border-radius: 18px !important;
+  }
+  /* Make the auth card wrapper use full width */
+  .auth-wrapper {
+    padding: 0 12px !important;
+  }
+}
