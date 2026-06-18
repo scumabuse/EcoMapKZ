@@ -8,6 +8,38 @@ import HeatMapLayer from '../components/map/HeatMapLayer';
 import Loader from '../components/ui/Loader';
 import { Map, Flame, Layers } from 'lucide-react';
 import { useEffect } from 'react';
+import { useMap } from 'react-leaflet';
+import MapSearch from '../components/map/MapSearch';
+
+type TargetLocation = {
+  lat: number;
+  lng: number;
+  bbox?: [number, number, number, number]; // south, north, west, east
+};
+
+function MapController({ targetLocation }: { targetLocation: TargetLocation | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (targetLocation) {
+      if (targetLocation.bbox) {
+        const [south, north, west, east] = targetLocation.bbox;
+        map.flyToBounds([
+          [south, west], // SouthWest
+          [north, east]  // NorthEast
+        ], {
+          duration: 2,
+          maxZoom: 18,
+          padding: [50, 50]
+        });
+      } else {
+        map.flyTo([targetLocation.lat, targetLocation.lng], 16, {
+          duration: 2
+        });
+      }
+    }
+  }, [targetLocation, map]);
+  return null;
+}
 
 function useHeatScript() {
   const [ready, setReady] = useState(false);
@@ -25,22 +57,37 @@ function useHeatScript() {
 }
 
 const legendItems = [
-  { color: '#4ade80', label: 'Низкое загрязнение' },
-  { color: '#fbbf24', label: 'Среднее загрязнение' },
-  { color: '#f87171', label: 'Высокое загрязнение' },
-  { color: 'rgba(255,255,255,0.3)', label: 'Не определено' },
+  { color: '#0ea5e9', label: 'Единичные точки' },
+  { color: '#22c55e', label: 'Небольшое скопление' },
+  { color: '#fbbf24', label: 'Среднее скопление' },
+  { color: '#f97316', label: 'Высокая плотность' },
+  { color: '#ef4444', label: 'Критическая зона' },
 ];
 
 export default function MapPage() {
   const { reports, loading } = useReports();
   const [mode, setMode] = useState<'markers' | 'heat'>('markers');
+  const [targetLocation, setTargetLocation] = useState<TargetLocation | null>(null);
   const heatReady = useHeatScript();
 
   if (loading) return <Loader text="Загрузка карты..." />;
 
   return (
-    <div className="relative map-full">
-      {/* Controls overlay */}
+    <div className="relative map-full" style={{ overflow: 'hidden' }}>
+      {/* Search overlay (Top Left) */}
+      <motion.div
+        initial={{ opacity: 0, x: -10 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.4 }}
+        className="absolute z-[1000]"
+        style={{ top: '24px', left: '104px' }}
+      >
+        <MapSearch
+          onLocationSelect={(lat, lng, bbox) => setTargetLocation({ lat, lng, bbox })}
+        />
+      </motion.div>
+
+      {/* Controls overlay (Top Right) */}
       <div className="absolute top-8 right-8 z-[1000] flex flex-col" style={{ gap: '20px' }}>
         {/* Mode toggle */}
         <motion.div
@@ -135,6 +182,7 @@ export default function MapPage() {
           noWrap={true}
           bounds={[[-90, -180], [90, 180]]}
         />
+        <MapController targetLocation={targetLocation} />
         {mode === 'markers' && reports.map((r) => <ReportMarker key={r.id} report={r} />)}
         {mode === 'heat' && heatReady && <HeatMapLayer reports={reports} />}
       </MapContainer>

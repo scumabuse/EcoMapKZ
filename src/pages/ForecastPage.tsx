@@ -84,7 +84,16 @@ export default function ForecastPage() {
       const recent = inReg.filter((r) => new Date(r.created_at) >= ago30).length;
       const avgPollution = inReg.length === 0 ? 0
         : inReg.reduce((acc, r) => acc + (pollMap[r.ai_pollution_level ?? 'low'] ?? 0), 0) / inReg.length;
-      const riskScore = Math.min(100, Math.round(inReg.length * 0.5 + recent * 0.3 + avgPollution * 2));
+      
+      // Считаем риск региона от 0 до 100 на основе статистики:
+      // - Общее количество (до 40 баллов, максимум за 20 обращений)
+      const totalScore = Math.min(40, (inReg.length / 20) * 40);
+      // - Недавняя активность (до 30 баллов, максимум за 10 обращений за 30 дней)
+      const recentScore = Math.min(30, (recent / 10) * 30);
+      // - Средний уровень загрязнения (до 30 баллов, где 2.0 это high)
+      const pollScore = (avgPollution / 2) * 30;
+      
+      const riskScore = Math.min(100, Math.round(totalScore + recentScore + pollScore));
       return { name: region.name, lat: region.lat, lng: region.lng, total: inReg.length, recent, avgPollution, riskScore };
     });
   };
@@ -159,7 +168,7 @@ export default function ForecastPage() {
         <div>
           <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: 'var(--text-1)', marginBottom: 8 }}>Формула расчёта индекса риска</p>
           <code style={{ fontFamily: 'monospace', fontSize: 13, padding: '6px 14px', borderRadius: 10, display: 'inline-block', background: 'rgba(255,255,255,0.05)', color: 'var(--amber)', border: '1px solid rgba(251,191,36,0.15)' }}>
-            R = (Всего × 0.5) + (30 дней × 0.3) + (Загрязнение × 2)
+            R = Очки(Количество) + Очки(За 30 дней) + Очки(Загрязнение)
           </code>
           <p style={{ fontFamily: FONT, fontSize: 12, marginTop: 8, fontWeight: 500, color: 'var(--text-faint)' }}>
             Обновлено: {format(new Date(), 'dd.MM.yyyy HH:mm')} · База: {reports.length} обращений

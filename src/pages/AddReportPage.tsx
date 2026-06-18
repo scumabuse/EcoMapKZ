@@ -5,11 +5,12 @@ import { useAuth } from '../contexts/AuthContext';
 import { createReport, uploadPhoto, updateReportAI } from '../lib/supabase';
 import { analyzeImageWithGemini } from '../lib/gemini';
 import LocationPicker from '../components/map/LocationPicker';
+import MapSearch from '../components/map/MapSearch';
 import Loader from '../components/ui/Loader';
 import toast from 'react-hot-toast';
 import {
   Upload, X, Send, AlertCircle, CheckCircle,
-  MapPin, FileText, Cpu, Camera, ArrowRight
+  MapPin, FileText, Cpu, Camera, ArrowRight, Navigation
 } from 'lucide-react';
 
 const FONT = "'Outfit', sans-serif";
@@ -84,12 +85,36 @@ export default function AddReportPage() {
   const [preview, setPreview] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
-  const [step, setStep] = useState<Step>('idle');
+  const [flyToLocation, setFlyToLocation] = useState<{ lat: number; lng: number; bbox?: [number, number, number, number] } | null>(null);
+  const [step, setStep] = useState<'idle' | 'uploading' | 'analyzing' | 'saving' | 'success'>('idle');
+  const [isLocating, setIsLocating] = useState(false);
   const [aiResult, setAiResult] = useState<{
     dump_detected: boolean; confidence: number;
     waste_types: string[]; pollution_level: string; hazardous_waste: boolean;
   } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleGetLocation = () => {
+    if (!navigator.geolocation) {
+      toast.error('Ваш браузер не поддерживает геолокацию');
+      return;
+    }
+    setIsLocating(true);
+    navigator.geolocation.getCurrentPosition(
+      (pos) => {
+        setIsLocating(false);
+        const { latitude, longitude } = pos.coords;
+        setLocation({ lat: latitude, lng: longitude });
+        setFlyToLocation({ lat: latitude, lng: longitude });
+        toast.success('Геолокация определена!', { icon: '📍' });
+      },
+      (err) => {
+        setIsLocating(false);
+        toast.error('Не удалось определить местоположение. Проверьте разрешения.', { icon: '⚠️' });
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }
+    );
+  };
 
   const handleFile = useCallback((f: File) => {
     if (!f.type.startsWith('image/')) { toast.error('Только изображения'); return; }
@@ -127,14 +152,21 @@ export default function AddReportPage() {
         const base64 = await fileToBase64(file);
         analysis = await analyzeImageWithGemini(base64, file.type);
         setAiResult(analysis);
-      } catch { toast('AI недоступен, данные сохранены', { icon: '⚠️' }); }
+      } catch (aiErr) {
+        const msg = aiErr instanceof Error ? aiErr.message : '';
+        if (msg.includes('429') || msg.toLowerCase().includes('quota') || msg.toLowerCase().includes('rate')) {
+          toast('AI превысил лимит запросов, повтор через 5с...', { icon: '⏳', duration: 6000 });
+        } else {
+          toast('AI недоступен, данные сохранены', { icon: '⚠️' });
+        }
+      }
 
       if (analysis) {
         setStep('saving');
-        const pollMap: Record<string, number> = { low: 0, medium: 1, high: 2 };
+        const pollMap: Record<string, number> = { low: 10, medium: 30, high: 50 };
         const risk = Math.round(
-          analysis.confidence * 0.5 +
-          (pollMap[analysis.pollution_level] ?? 0) * 10 * 0.3 +
+          (analysis.confidence * 0.3) +
+          (pollMap[analysis.pollution_level] ?? 10) +
           (analysis.hazardous_waste ? 20 : 0)
         );
         await updateReportAI(report.id, {
@@ -329,23 +361,46 @@ export default function AddReportPage() {
             }}
           >
             {/* Card header */}
-            <div style={{ padding: '24px 28px 20px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+            <div style={{ padding: '20px 24px', flexShrink: 0, borderBottom: '1px solid var(--border)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 16, marginBottom: 14 }}>
                 <IconBox bg="rgba(248,113,113,0.1)" border="rgba(248,113,113,0.2)">
                   <MapPin size={20} style={{ color: 'var(--red)' }} />
                 </IconBox>
                 <div>
                   <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 16, color: 'var(--text-1)', lineHeight: 1.2 }}>Местоположение</p>
                   <p style={{ fontFamily: FONT, fontWeight: 500, fontSize: 13, color: location ? 'var(--green)' : 'var(--text-muted)', marginTop: 2 }}>
-                    {location ? `📍 ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Нажмите на карту, чтобы выбрать точку'}
+                    {location ? `📍 ${location.lat.toFixed(5)}, ${location.lng.toFixed(5)}` : 'Нажмите на карту или найдите адрес'}
                   </p>
                 </div>
               </div>
+              {/* Address search bar */}
+              <MapSearch
+                onLocationSelect={(lat, lng, bbox) => setFlyToLocation({ lat, lng, bbox })}
+              />
             </div>
 
             {/* Map fills remaining height */}
             <div style={{ flex: 1, minHeight: 480, position: 'relative' }}>
-              <LocationPicker value={location} onChange={setLocation} />
+              <LocationPicker value={location} onChange={setLocation} flyToLocation={flyToLocation} />
+            </div>
+            
+            {/* Find my location button */}
+            <div style={{ padding: '16px 24px', borderTop: '1px solid var(--border)', background: 'rgba(255,255,255,0.02)' }}>
+              <motion.button
+                whileHover={{ scale: 1.02 }}
+                whileTap={{ scale: 0.98 }}
+                onClick={handleGetLocation}
+                disabled={isLocating}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 10,
+                  padding: '14px', borderRadius: 14, fontFamily: FONT, fontWeight: 700, fontSize: 14,
+                  background: 'rgba(59,130,246,0.1)', color: '#3b82f6', border: '1px solid rgba(59,130,246,0.2)',
+                  cursor: isLocating ? 'not-allowed' : 'pointer', opacity: isLocating ? 0.7 : 1
+                }}
+              >
+                {isLocating ? <Loader text="" /> : <Navigation size={18} />}
+                {isLocating ? 'Поиск спутников...' : 'Где я сейчас нахожусь?'}
+              </motion.button>
             </div>
           </motion.div>
         </div>

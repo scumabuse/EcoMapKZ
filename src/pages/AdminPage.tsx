@@ -3,15 +3,17 @@ import { motion } from 'framer-motion';
 import { useAuth } from '../contexts/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { useReports } from '../hooks/useReports';
-import { updateReportStatus, deleteReport } from '../lib/supabase';
+import { updateReportStatus, deleteReport, updateReportAI, supabase } from '../lib/supabase';
+import { analyzeImageWithGemini } from '../lib/gemini';
 import ReportCard from '../components/reports/ReportCard';
 import Loader from '../components/ui/Loader';
 import toast from 'react-hot-toast';
 import {
   Shield, Filter, CheckCircle2, XCircle, Clock,
-  Search, List, Grid, Trash2, BarChart3
+  Search, List, Grid, Trash2, BarChart3, Cpu
 } from 'lucide-react';
 import type { Report } from '../types';
+
 
 type FilterStatus = 'all' | 'pending' | 'verified' | 'rejected';
 
@@ -22,6 +24,8 @@ export default function AdminPage() {
   const [filter, setFilter] = useState<FilterStatus>('all');
   const [search, setSearch] = useState('');
   const [view, setView] = useState<'grid' | 'table'>('table');
+  const [bulkRunning, setBulkRunning] = useState(false);
+  const [bulkProgress, setBulkProgress] = useState<{ done: number; total: number } | null>(null);
 
   const handleStatusChange = async (id: string, status: 'pending' | 'verified' | 'rejected') => {
     try {
@@ -38,6 +42,68 @@ export default function AdminPage() {
       toast.success('Удалено');
       await refetch();
     } catch { toast.error('Ошибка удаления'); }
+  };
+
+  const handleBulkAnalyze = async () => {
+    if (bulkRunning) return;
+    // Fetch reports that have a photo but no AI analysis yet
+    const { data, error } = await supabase
+      .from('reports')
+      .select('*')
+      .not('photo_url', 'is', null)
+      .is('ai_confidence', null);
+    if (error || !data || data.length === 0) {
+      toast('Нет репортов без AI-анализа', { icon: 'ℹ️' });
+      return;
+    }
+    const queue = data as Report[];
+    setBulkRunning(true);
+    setBulkProgress({ done: 0, total: queue.length });
+    toast(`Запускаю анализ ${queue.length} фото...`, { icon: '🤖', duration: 4000 });
+
+    let success = 0;
+    let failed = 0;
+    for (let i = 0; i < queue.length; i++) {
+      const report = queue[i];
+      try {
+        // Fetch image → base64
+        const imgRes = await fetch(report.photo_url!);
+        const buf = await imgRes.arrayBuffer();
+        const uint8 = new Uint8Array(buf);
+        let bin = '';
+        for (let b = 0; b < uint8.length; b++) bin += String.fromCharCode(uint8[b]);
+        const base64 = btoa(bin);
+        const mimeType = imgRes.headers.get('content-type') ?? 'image/jpeg';
+
+        const analysis = await analyzeImageWithGemini(base64, mimeType);
+        const pollMap: Record<string, number> = { low: 10, medium: 30, high: 50 };
+        const risk = Math.min(100, Math.round(
+          (analysis.confidence * 0.3) +
+          (pollMap[analysis.pollution_level] ?? 10) +
+          (analysis.hazardous_waste ? 20 : 0)
+        ));
+        await updateReportAI(report.id, {
+          ai_is_dump: analysis.dump_detected,
+          ai_confidence: analysis.confidence,
+          ai_pollution_level: analysis.pollution_level,
+          ai_waste_types: analysis.waste_types,
+          ai_hazardous: analysis.hazardous_waste,
+          risk_score: risk,
+          status: analysis.dump_detected && analysis.confidence >= 70 ? 'verified' : (analysis.dump_detected ? 'pending' : 'rejected'),
+        });
+        success++;
+      } catch {
+        failed++;
+      }
+      setBulkProgress({ done: i + 1, total: queue.length });
+      // 2s pause between requests to avoid rate limiting
+      if (i < queue.length - 1) await new Promise((r) => setTimeout(r, 2000));
+    }
+
+    setBulkRunning(false);
+    setBulkProgress(null);
+    toast.success(`Готово: ${success} проанализировано, ${failed} ошибок`);
+    await refetch();
   };
 
   if (authLoading) return <Loader />;
@@ -106,7 +172,29 @@ export default function AdminPage() {
           </h1>
         </div>
 
-        {/* View toggle */}
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
+          {/* Bulk AI button */}
+          <motion.button
+            whileHover={{ scale: bulkRunning ? 1 : 1.03, y: bulkRunning ? 0 : -2 }}
+            whileTap={{ scale: 0.95 }}
+            onClick={handleBulkAnalyze}
+            disabled={bulkRunning}
+            style={{
+              display: 'flex', alignItems: 'center', gap: 8,
+              padding: '10px 20px', borderRadius: 12, border: 'none', cursor: bulkRunning ? 'not-allowed' : 'pointer',
+              background: bulkRunning ? 'rgba(74,222,128,0.06)' : 'rgba(74,222,128,0.12)',
+              color: 'var(--green)', fontWeight: 700, fontSize: 13,
+              border: '1px solid rgba(74,222,128,0.2)',
+              opacity: bulkRunning ? 0.7 : 1,
+            }}
+          >
+            <Cpu size={15} />
+            {bulkRunning && bulkProgress
+              ? `${bulkProgress.done} / ${bulkProgress.total}`
+              : 'Анализировать все'}
+          </motion.button>
+
+          {/* View toggle */}
         <div className="flex gap-1 p-1 rounded-xl" style={{ background: 'var(--bg-elevated)', border: '1px solid var(--border)' }}>
           {(['table', 'grid'] as const).map((v) => (
             <motion.button
@@ -123,6 +211,7 @@ export default function AdminPage() {
               {v === 'table' ? 'Таблица' : 'Карточки'}
             </motion.button>
           ))}
+          </div>
         </div>
       </motion.div>
 
