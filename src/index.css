@@ -647,12 +647,31 @@ body::before {
 
 /* Mobile map controls: shift mode toggle right to avoid hamburger overlap */
 @media (max-width: 768px) {
-  /* Map mode buttons: move below hamburger on small screens */
-  .map-controls-top { top: 88px !important; right: 12px !important; }
-  /* Make map stat counter smaller on mobile */
-  .map-count-card { padding: 14px 20px !important; min-width: unset !important; }
-  /* Map search — push from hamburger */
-  .map-search-wrap { left: 88px !important; }
+  /* Search bar: move to full-width below hamburger row */
+  .map-search-wrap {
+    left: 12px !important;
+    right: 12px !important;
+    top: 80px !important;
+    width: auto !important;
+    max-width: none !important;
+  }
+
+  /* Controls: anchor to top-right, tighter */
+  .map-controls-top {
+    top: 12px !important;
+    right: 12px !important;
+    gap: 8px !important;
+  }
+
+  /* Mode toggle: icon-only (hide label text) */
+  .map-mode-label { display: none !important; }
+  .map-mode-btn {
+    padding: 10px 12px !important;
+    gap: 0 !important;
+  }
+
+  /* Count card: hide on mobile (point count visible in bottom nav or elsewhere) */
+  .map-count-card { display: none !important; }
 }
 
 /* Login / Register pages: ensure form card doesn't overflow on small phones */

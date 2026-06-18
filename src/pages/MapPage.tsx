@@ -74,7 +74,7 @@ export default function MapPage() {
 
   return (
     <div className="relative map-full" style={{ overflow: 'hidden' }}>
-      {/* Search overlay (Top Left) */}
+      {/* ── Search bar: Desktop = next to hamburger, Mobile = full-width below ── */}
       <motion.div
         initial={{ opacity: 0, x: -10 }}
         animate={{ opacity: 1, x: 0 }}
@@ -87,15 +87,15 @@ export default function MapPage() {
         />
       </motion.div>
 
-      {/* Controls overlay (Top Right) */}
-      <div className="map-controls-top absolute top-8 right-8 z-[1000] flex flex-col" style={{ gap: '20px' }}>
-        {/* Mode toggle */}
+      {/* ── Controls (Top Right): Mode toggle + Count ── */}
+      <div className="map-controls-top absolute z-[1000] flex flex-col" style={{ top: '24px', right: '24px', gap: '12px' }}>
+        {/* Mode toggle — compact icon-only on mobile, full label on desktop */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.4 }}
-          className="flex rounded-[24px]"
-          style={{ gap: '8px', padding: '8px', background: 'var(--bg-surface)', border: '1px solid var(--border-md)', backdropFilter: 'blur(20px)' }}
+          className="map-mode-toggle flex rounded-[20px]"
+          style={{ gap: '6px', padding: '6px', background: 'var(--bg-surface)', border: '1px solid var(--border-md)', backdropFilter: 'blur(20px)' }}
         >
           {[
             { key: 'markers' as const, label: 'Маркеры', icon: <Map size={18} /> },
@@ -105,31 +105,33 @@ export default function MapPage() {
               key={key}
               whileTap={{ scale: 0.95 }}
               onClick={() => setMode(key)}
-              className="flex items-center rounded-[18px] text-[14px] font-bold transition-all"
+              title={label}
+              className="map-mode-btn flex items-center rounded-[14px] font-bold transition-all"
               style={mode === key
-                ? { gap: '12px', padding: '12px 24px', background: 'rgba(74,222,128,0.12)', color: 'var(--green)', border: '1px solid rgba(74,222,128,0.2)' }
-                : { gap: '12px', padding: '12px 24px', color: 'var(--text-muted)' }
+                ? { gap: '10px', padding: '10px 20px', background: 'rgba(74,222,128,0.12)', color: 'var(--green)', border: '1px solid rgba(74,222,128,0.2)', fontSize: 14 }
+                : { gap: '10px', padding: '10px 20px', color: 'var(--text-muted)', fontSize: 14 }
               }
             >
-              {icon} {label}
+              {icon} <span className="map-mode-label">{label}</span>
             </motion.button>
           ))}
         </motion.div>
 
-        {/* Count */}
+        {/* Count card — hidden on mobile via CSS */}
         <motion.div
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1, duration: 0.4 }}
-          className="rounded-[24px] min-w-[200px]"
-          style={{ padding: '24px 32px', background: 'var(--bg-surface)', border: '1px solid var(--border-md)', backdropFilter: 'blur(20px)' }}
+          className="map-count-card rounded-[20px]"
+          style={{ padding: '20px 28px', background: 'var(--bg-surface)', border: '1px solid var(--border-md)', backdropFilter: 'blur(20px)' }}
         >
-          <p className="label-caps" style={{ marginBottom: '8px', fontSize: '12px' }}>Точек на карте</p>
-          <p className="font-bold" style={{ fontSize: '36px', fontFamily: 'Syne', color: 'var(--green)', lineHeight: 1.1 }}>
+          <p className="label-caps" style={{ marginBottom: '6px', fontSize: '11px' }}>Точек на карте</p>
+          <p className="font-bold" style={{ fontSize: '32px', fontFamily: 'Syne', color: 'var(--green)', lineHeight: 1.1 }}>
             {reports.length}
           </p>
         </motion.div>
       </div>
+
 
       {/* Legend */}
       <motion.div
