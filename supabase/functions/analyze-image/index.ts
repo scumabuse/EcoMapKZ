@@ -76,13 +76,13 @@ serve(async (req) => {
     const analysis = JSON.parse(cleaned)
 
     // Calculate risk score
-    const pollutionMap: Record<string, number> = { low: 0, medium: 1, high: 2 }
-    const pollScore = pollutionMap[analysis.pollution_level] ?? 0
+    const pollutionMap: Record<string, number> = { low: 10, medium: 30, high: 50 }
+    const pollScore = pollutionMap[analysis.pollution_level] ?? 10
     const riskScore = Math.min(
       100,
       Math.round(
-        analysis.confidence * 0.5 +
-        pollScore * 10 * 0.3 +
+        (analysis.confidence * 0.3) +
+        pollScore +
         (analysis.hazardous_waste ? 20 : 0)
       )
     )

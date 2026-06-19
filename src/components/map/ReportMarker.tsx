@@ -92,7 +92,7 @@ export default function ReportMarker({ report }: ReportMarkerProps) {
               className="rounded-lg p-3 space-y-2"
               style={{ background: 'rgba(0,230,118,0.05)', border: '1px solid rgba(0,230,118,0.15)' }}
             >
-              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--accent-green)' }}>
+              <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--green)' }}>
                 Уровень риска (AI)
               </p>
               <div className="flex items-center gap-2">
@@ -104,7 +104,7 @@ export default function ReportMarker({ report }: ReportMarkerProps) {
                     className="h-full rounded-full"
                     style={{
                       width: `${report.risk_score}%`,
-                      background: `linear-gradient(90deg, var(--accent-green), var(--accent-blue))`,
+                      background: `linear-gradient(90deg, var(--green), var(--amber))`,
                     }}
                   />
                 </div>
