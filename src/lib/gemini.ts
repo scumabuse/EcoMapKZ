@@ -159,9 +159,15 @@ export async function getSingleForecast(
 Средний уровень загрязнения (0-2): ${stats.avgPollution.toFixed(2)}
 Расчётный риск-балл: ${stats.riskScore}
 
-Оцени вероятность появления новых несанкционированных свалок.
-Верни ТОЛЬКО JSON без пояснений:
-{"risk": 0, "summary": ""}`,
+Оцени экологическую ситуацию и сделай детальный прогноз по появлению новых свалок.
+Верни ТОЛЬКО JSON без пояснений (используй двойные кавычки):
+{
+  "risk": 0,
+  "summary": "Развернутый анализ ситуации (3-5 предложений)",
+  "trend": "increasing", // "increasing", "stable" или "decreasing"
+  "factors": ["фактор 1", "фактор 2", "фактор 3"],
+  "recommendations": ["рекомендация 1", "рекомендация 2", "рекомендация 3"]
+}`,
     },
   ]);
 
@@ -169,6 +175,12 @@ export async function getSingleForecast(
   try {
     return JSON.parse(cleaned) as ForecastResult;
   } catch {
-    return { risk: stats.riskScore, summary: 'Анализ недоступен.' };
+    return { 
+      risk: stats.riskScore, 
+      summary: 'Анализ недоступен.',
+      trend: 'stable',
+      factors: ['Недостаточно данных для анализа факторов'],
+      recommendations: ['Продолжайте мониторинг ситуации в штатном режиме']
+    };
   }
 }

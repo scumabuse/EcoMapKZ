@@ -112,6 +112,9 @@ export default function ForecastPage() {
         summary: rs.riskScore > 66 ? 'Высокий риск. Требуется немедленный контроль.'
           : rs.riskScore > 33 ? 'Умеренный риск. Рекомендуется мониторинг.'
           : 'Низкий риск. Ситуация стабильная.',
+        trend: 'stable',
+        factors: ['Недостаточно данных'],
+        recommendations: ['Требуется дополнительный сбор данных']
       })));
     } finally {
       setAnalyzing(false);
@@ -268,7 +271,18 @@ export default function ForecastPage() {
                     </div>
                     <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 20 }}>
                       <div>
-                        <h3 style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, color: 'var(--text-1)', marginBottom: 6 }}>{selected.name}</h3>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
+                          <h3 style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, color: 'var(--text-1)' }}>{selected.name}</h3>
+                          {selected.trend && (
+                            <span style={{ 
+                              padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700,
+                              background: selected.trend === 'increasing' ? 'rgba(248,113,113,0.1)' : selected.trend === 'decreasing' ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
+                              color: selected.trend === 'increasing' ? 'var(--red)' : selected.trend === 'decreasing' ? 'var(--green)' : 'var(--amber)'
+                            }}>
+                              {selected.trend === 'increasing' ? '↗ Рост риска' : selected.trend === 'decreasing' ? '↘ Снижение риска' : '→ Стабильно'}
+                            </span>
+                          )}
+                        </div>
                         <p style={{ fontFamily: FONT, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>Подробный анализ экологического риска</p>
                       </div>
                       <div className="forecast-detail-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
@@ -288,7 +302,29 @@ export default function ForecastPage() {
                           <Brain size={15} style={{ color: 'var(--green)' }} />
                           <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green)' }}>Gemini AI Резюме</span>
                         </div>
-                        <p style={{ fontFamily: FONT, fontSize: 15, fontWeight: 500, lineHeight: 1.7, color: 'var(--text-2)' }}>{selected.summary}</p>
+                        <p style={{ fontFamily: FONT, fontSize: 15, fontWeight: 500, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 16 }}>{selected.summary}</p>
+                        
+                        {selected.factors && selected.factors.length > 0 && (
+                          <div style={{ marginBottom: 16 }}>
+                            <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8, opacity: 0.8 }}>Ключевые факторы:</p>
+                            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {selected.factors.map((factor, idx) => (
+                                <li key={idx} style={{ fontFamily: FONT, fontSize: 14, color: 'var(--text-muted)' }}>{factor}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+
+                        {selected.recommendations && selected.recommendations.length > 0 && (
+                          <div>
+                            <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8, opacity: 0.8 }}>Рекомендации:</p>
+                            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                              {selected.recommendations.map((rec, idx) => (
+                                <li key={idx} style={{ fontFamily: FONT, fontSize: 14, color: 'var(--text-muted)' }}>{rec}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
                       </div>
                       {selected.risk > 66 && (
                         <motion.div

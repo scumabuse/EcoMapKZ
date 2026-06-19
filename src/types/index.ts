@@ -32,6 +32,9 @@ export interface GeminiAnalysis {
 export interface ForecastResult {
   risk: number;
   summary: string;
+  trend: 'increasing' | 'stable' | 'decreasing';
+  factors: string[];
+  recommendations: string[];
 }
 
 export interface Stats {
