@@ -112,9 +112,10 @@ export async function getForecastFromGemini(
     2
   );
 
-  const text = await geminiRequest([
-    {
-      text: `Ты экологический аналитик по Казахстану.
+  try {
+    const text = await geminiRequest([
+      {
+        text: `Ты экологический аналитик по Казахстану.
 
 На основе статистики по регионам оцени вероятность появления новых несанкционированных свалок.
 
@@ -132,11 +133,10 @@ ${statsJson}
     "recommendations": ["рекомендация 1", "рекомендация 2"]
   }
 ]`,
-    },
-  ]);
+      },
+    ]);
 
-  const cleaned = text.replace(/```(?:json)?|```/g, '').trim();
-  try {
+    const cleaned = text.replace(/```(?:json)?|```/g, '').trim();
     const arr = JSON.parse(cleaned) as Array<{
       region: string;
       risk: number;

@@ -110,16 +110,16 @@ export default function ForecastPage() {
         return { ...rs, ...f };
       });
       setResults(forecasts);
-    } catch {
+    } catch (error) {
+      console.error("Forecast error:", error);
+      // Fallback is handled inside getForecastFromGemini now, so this is just a final safety net
       const stats = computeStats();
       setResults(stats.map((rs) => ({
         ...rs, risk: rs.riskScore,
-        summary: rs.riskScore > 66 ? 'Высокий риск. Требуется немедленный контроль.'
-          : rs.riskScore > 33 ? 'Умеренный риск. Рекомендуется мониторинг.'
-          : 'Низкий риск. Ситуация стабильная.',
+        summary: 'Ошибка связи с сервером.',
         trend: 'stable',
-        factors: ['Недостаточно данных'],
-        recommendations: ['Требуется дополнительный сбор данных']
+        factors: ['Неизвестно'],
+        recommendations: ['Повторите попытку позже']
       })));
     } finally {
       setAnalyzing(false);
