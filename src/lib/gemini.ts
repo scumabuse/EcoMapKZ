@@ -164,7 +164,7 @@ export async function getSingleForecast(
 {
   "risk": 0,
   "summary": "Развернутый анализ ситуации (3-5 предложений)",
-  "trend": "increasing", // "increasing", "stable" или "decreasing"
+  "trend": "increasing",
   "factors": ["фактор 1", "фактор 2", "фактор 3"],
   "recommendations": ["рекомендация 1", "рекомендация 2", "рекомендация 3"]
 }`,

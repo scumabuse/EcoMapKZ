@@ -87,13 +87,13 @@ export default function ReportMarker({ report }: ReportMarkerProps) {
           )}
 
           {/* AI Analysis */}
-          {report.ai_confidence !== null && (
+          {report.risk_score !== undefined && (
             <div
               className="rounded-lg p-3 space-y-2"
               style={{ background: 'rgba(0,230,118,0.05)', border: '1px solid rgba(0,230,118,0.15)' }}
             >
               <p className="text-xs font-semibold uppercase tracking-wider" style={{ color: 'var(--accent-green)' }}>
-                AI Анализ
+                Уровень риска (AI)
               </p>
               <div className="flex items-center gap-2">
                 <div
@@ -103,13 +103,13 @@ export default function ReportMarker({ report }: ReportMarkerProps) {
                   <div
                     className="h-full rounded-full"
                     style={{
-                      width: `${report.ai_confidence}%`,
+                      width: `${report.risk_score}%`,
                       background: `linear-gradient(90deg, var(--accent-green), var(--accent-blue))`,
                     }}
                   />
                 </div>
                 <span className="text-xs font-bold" style={{ color: 'var(--text-primary)' }}>
-                  {report.ai_confidence}%
+                  {report.risk_score}%
                 </span>
               </div>
               {report.ai_waste_types && report.ai_waste_types.length > 0 && (
