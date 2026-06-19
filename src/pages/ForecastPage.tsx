@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useReports } from '../hooks/useReports';
-import { getSingleForecast } from '../lib/gemini';
+import { getForecastFromGemini } from '../lib/gemini';
 import type { RegionStats, ForecastResult } from '../types';
 import Loader from '../components/ui/Loader';
 import { Brain, Calculator, BarChart3 } from 'lucide-react';
@@ -102,7 +102,13 @@ export default function ForecastPage() {
     setAnalyzed(false);
     try {
       const stats = computeStats();
-      const forecasts = await Promise.all(stats.map((rs) => getSingleForecast(rs).then((f) => ({ ...rs, ...f }))));
+      const aiForecasts = await getForecastFromGemini(stats);
+      
+      // Merge AI predictions with stats, matching by index
+      const forecasts = stats.map((rs, i) => {
+        const f = aiForecasts[i] || aiForecasts.find((a: any) => a.region === rs.name);
+        return { ...rs, ...f };
+      });
       setResults(forecasts);
     } catch {
       const stats = computeStats();

@@ -126,33 +126,39 @@ ${statsJson}
   {
     "region": "Астана",
     "risk": 75,
-    "summary": "Краткое объяснение на русском языке (1-2 предложения)"
+    "summary": "Развернутый анализ ситуации (3-5 предложений)",
+    "trend": "increasing",
+    "factors": ["фактор 1", "фактор 2", "фактор 3"],
+    "recommendations": ["рекомендация 1", "рекомендация 2"]
   }
 ]`,
     },
   ]);
 
-  const cleaned = text.replace(/```json|```/g, '').trim();
+  const cleaned = text.replace(/```(?:json)?|```/g, '').trim();
   try {
     const arr = JSON.parse(cleaned) as Array<{
       region: string;
       risk: number;
       summary: string;
+      trend: 'increasing' | 'stable' | 'decreasing';
+      factors: string[];
+      recommendations: string[];
     }>;
     return arr.map((item) => ({ 
       risk: item.risk, 
       summary: item.summary,
-      trend: 'stable' as const,
-      factors: [],
-      recommendations: []
+      trend: item.trend || 'stable',
+      factors: item.factors || [],
+      recommendations: item.recommendations || []
     }));
   } catch {
     return regions.map(() => ({ 
       risk: 50, 
-      summary: 'Данные недоступны',
+      summary: 'Анализ недоступен (ошибка обработки ИИ).',
       trend: 'stable' as const,
-      factors: [],
-      recommendations: []
+      factors: ['Недостаточно данных'],
+      recommendations: ['Повторите запрос позже']
     }));
   }
 }
