@@ -16,7 +16,7 @@ export default function Layout() {
   return (
     <div style={{ height: '100vh', overflow: 'hidden', position: 'relative', background: 'var(--bg)' }}>
       <Sidebar />
-      <main style={{ height: '100%', overflowY: 'auto', position: 'relative' }}>
+      <main style={{ height: '100%', overflowY: 'auto', overflowX: 'hidden', position: 'relative' }}>
         <AnimatePresence mode="wait">
           <motion.div
             key={location.pathname}
