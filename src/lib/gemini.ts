@@ -139,9 +139,21 @@ ${statsJson}
       risk: number;
       summary: string;
     }>;
-    return arr.map((item) => ({ risk: item.risk, summary: item.summary }));
+    return arr.map((item) => ({ 
+      risk: item.risk, 
+      summary: item.summary,
+      trend: 'stable' as const,
+      factors: [],
+      recommendations: []
+    }));
   } catch {
-    return regions.map(() => ({ risk: 50, summary: 'Данные недоступны' }));
+    return regions.map(() => ({ 
+      risk: 50, 
+      summary: 'Данные недоступны',
+      trend: 'stable' as const,
+      factors: [],
+      recommendations: []
+    }));
   }
 }
 

@@ -1,10 +1,10 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { useReports } from '../hooks/useReports';
 import { getSingleForecast } from '../lib/gemini';
 import type { RegionStats, ForecastResult } from '../types';
 import Loader from '../components/ui/Loader';
-import { Brain, AlertTriangle, Calculator, BarChart3 } from 'lucide-react';
+import { Brain, Calculator, BarChart3 } from 'lucide-react';
 import { format, subDays } from 'date-fns';
 
 /* ── Google Font: Outfit (used only on this page) ─────────────────── */
@@ -71,7 +71,6 @@ export default function ForecastPage() {
   const [results, setResults] = useState<(RegionStats & ForecastResult)[]>([]);
   const [analyzing, setAnalyzing] = useState(false);
   const [analyzed, setAnalyzed] = useState(false);
-  const [selectedIdx, setSelectedIdx] = useState<number | null>(null);
 
   const computeStats = (): RegionStats[] => {
     const ago30 = subDays(new Date(), 30);
@@ -123,7 +122,6 @@ export default function ForecastPage() {
   };
 
   if (reportsLoading) return <Loader text="Загрузка..." />;
-  const selected = selectedIdx !== null ? results[selectedIdx] : null;
 
   return (
     <div className="page-container" style={{ fontFamily: FONT, position: 'relative', display: 'flex', flexDirection: 'column', gap: 40 }}>
@@ -223,124 +221,87 @@ export default function ForecastPage() {
             <h2 style={{ fontFamily: FONT, fontSize: 24, fontWeight: 800, color: 'var(--text-1)' }}>Результаты по регионам</h2>
           </div>
 
-          {/* Grid */}
-          <div className="forecast-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
+          {/* Detailed Cards List */}
+          <div className="forecast-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: 24 }}>
             {results.map((r, idx) => (
-              <motion.button
+              <motion.div
                 key={r.name}
-                initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }}
+                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
                 transition={{ delay: idx * 0.05, duration: 0.4, ease: "easeOut" }}
-                whileHover={{ y: -6, scale: 1.03 }} whileTap={{ scale: 0.9 }}
-                onClick={() => setSelectedIdx(idx === selectedIdx ? null : idx)}
                 style={{
-                  fontFamily: FONT, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12,
-                  padding: '28px 16px', borderRadius: 20, cursor: 'pointer', textAlign: 'center', border: '1px solid',
+                  fontFamily: FONT, display: 'flex', flexDirection: 'column', gap: 20,
+                  padding: '28px', borderRadius: 20, border: '1px solid',
                   background: 'var(--bg-card)',
-                  borderColor: selectedIdx === idx ? riskColor(r.risk) : 'var(--border)',
-                  boxShadow: selectedIdx === idx ? `0 0 30px ${riskColor(r.risk)}25, 0 8px 32px rgba(0,0,0,0.4)` : 'none',
+                  borderColor: 'var(--border)',
+                  boxShadow: 'var(--shadow-sm)',
                 }}
               >
-                <RiskGauge value={r.risk} size={88} />
-                <p style={{ fontFamily: FONT, fontWeight: 700, fontSize: 15, color: 'var(--text-1)' }}>{r.name}</p>
-                <span style={{
-                  fontFamily: FONT, fontSize: 11, fontWeight: 700, padding: '4px 14px', borderRadius: 99,
-                  background: `${riskColor(r.risk)}12`, color: riskColor(r.risk), border: `1px solid ${riskColor(r.risk)}30`,
-                }}>
-                  {r.risk < 33 ? 'Норма' : r.risk < 66 ? 'Внимание' : 'Опасно'}
-                </span>
-              </motion.button>
+                {/* Header: Gauge + Info */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: 20, flexWrap: 'wrap' }}>
+                  <RiskGauge value={r.risk} size={88} />
+                  <div style={{ flex: 1, minWidth: 200 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 8 }}>
+                      <h3 style={{ fontFamily: FONT, fontWeight: 800, fontSize: 24, color: 'var(--text-1)', margin: 0 }}>{r.name}</h3>
+                      {r.trend && (
+                        <span style={{ 
+                          padding: '4px 10px', borderRadius: 12, fontSize: 11, fontWeight: 700,
+                          background: r.trend === 'increasing' ? 'rgba(248,113,113,0.1)' : r.trend === 'decreasing' ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
+                          color: r.trend === 'increasing' ? 'var(--red)' : r.trend === 'decreasing' ? 'var(--green)' : 'var(--amber)'
+                        }}>
+                          {r.trend === 'increasing' ? '↗ Рост' : r.trend === 'decreasing' ? '↘ Спад' : '→ Стабильно'}
+                        </span>
+                      )}
+                    </div>
+                    <span style={{
+                      fontFamily: FONT, fontSize: 12, fontWeight: 700, padding: '4px 14px', borderRadius: 99,
+                      background: `${riskColor(r.risk)}12`, color: riskColor(r.risk), border: `1px solid ${riskColor(r.risk)}30`,
+                      display: 'inline-block'
+                    }}>
+                      {r.risk < 33 ? 'Уровень в норме' : r.risk < 66 ? 'Внимание, риск растёт' : 'Опасная ситуация'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* AI Summary */}
+                <div style={{ background: 'rgba(255,255,255,0.02)', padding: '16px', borderRadius: 12, border: '1px solid rgba(255,255,255,0.05)' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
+                    <Brain size={14} style={{ color: 'var(--green)' }} />
+                    <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green)' }}>Анализ Gemini AI</span>
+                  </div>
+                  <p style={{ fontFamily: FONT, fontSize: 14, fontWeight: 500, lineHeight: 1.6, color: 'var(--text-2)', margin: 0 }}>
+                    {r.summary}
+                  </p>
+                </div>
+
+                {/* AI Factors & Recommendations */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+                  {r.factors && r.factors.length > 0 && (
+                    <div>
+                      <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Факторы риска:</p>
+                      <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {r.factors.slice(0, 3).map((factor, i) => (
+                          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{factor}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                  {r.recommendations && r.recommendations.length > 0 && (
+                    <div>
+                      <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--green)', marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.05em' }}>Рекомендации:</p>
+                      <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
+                        {r.recommendations.slice(0, 2).map((rec, i) => (
+                          <li key={i} style={{ fontSize: 13, color: 'var(--text-secondary)' }}>{rec}</li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+
+              </motion.div>
             ))}
           </div>
 
-          {/* Detail panel */}
-          <AnimatePresence>
-            {selected && (
-              <motion.div
-                key={selectedIdx}
-                initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: 20 }}
-                transition={{ duration: 0.4, ease: "easeOut" }}
-                style={{
-                  borderRadius: 24, overflow: 'hidden', border: `1px solid ${riskColor(selected.risk)}30`,
-                  background: `${riskColor(selected.risk)}06`,
-                }}
-              >
-                <div style={{ padding: '36px 40px' }}>
-                  <div className="forecast-detail-row" style={{ display: 'flex', flexDirection: 'row', gap: 40, alignItems: 'flex-start', flexWrap: 'wrap' }}>
-                    <div style={{ flexShrink: 0 }}>
-                      <RiskGauge value={selected.risk} size={130} />
-                    </div>
-                    <div style={{ flex: 1, minWidth: 280, display: 'flex', flexDirection: 'column', gap: 20 }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 6 }}>
-                          <h3 style={{ fontFamily: FONT, fontSize: 30, fontWeight: 800, color: 'var(--text-1)' }}>{selected.name}</h3>
-                          {selected.trend && (
-                            <span style={{ 
-                              padding: '4px 10px', borderRadius: 12, fontSize: 12, fontWeight: 700,
-                              background: selected.trend === 'increasing' ? 'rgba(248,113,113,0.1)' : selected.trend === 'decreasing' ? 'rgba(74,222,128,0.1)' : 'rgba(251,191,36,0.1)',
-                              color: selected.trend === 'increasing' ? 'var(--red)' : selected.trend === 'decreasing' ? 'var(--green)' : 'var(--amber)'
-                            }}>
-                              {selected.trend === 'increasing' ? '↗ Рост риска' : selected.trend === 'decreasing' ? '↘ Снижение риска' : '→ Стабильно'}
-                            </span>
-                          )}
-                        </div>
-                        <p style={{ fontFamily: FONT, fontSize: 14, fontWeight: 500, color: 'var(--text-muted)' }}>Подробный анализ экологического риска</p>
-                      </div>
-                      <div className="forecast-detail-stats" style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 12 }}>
-                        {[
-                          { label: 'Обращений', value: selected.total, color: 'var(--green)' },
-                          { label: 'За 30 дней', value: selected.recent, color: 'var(--amber)' },
-                          { label: 'Индекс', value: selected.riskScore, color: riskColor(selected.risk) },
-                        ].map(({ label, value, color }) => (
-                          <div key={label} style={{ borderRadius: 16, padding: '16px', textAlign: 'center', background: 'rgba(255,255,255,0.03)', border: '1px solid var(--border)' }}>
-                            <p style={{ fontFamily: FONT, fontSize: 28, fontWeight: 800, color, marginBottom: 4 }}>{value}</p>
-                            <p style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>{label}</p>
-                          </div>
-                        ))}
-                      </div>
-                      <div style={{ borderRadius: 16, padding: '20px 24px', background: 'rgba(74,222,128,0.05)', border: '1px solid rgba(74,222,128,0.12)' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                          <Brain size={15} style={{ color: 'var(--green)' }} />
-                          <span style={{ fontFamily: FONT, fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'var(--green)' }}>Gemini AI Резюме</span>
-                        </div>
-                        <p style={{ fontFamily: FONT, fontSize: 15, fontWeight: 500, lineHeight: 1.7, color: 'var(--text-2)', marginBottom: 16 }}>{selected.summary}</p>
-                        
-                        {selected.factors && selected.factors.length > 0 && (
-                          <div style={{ marginBottom: 16 }}>
-                            <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8, opacity: 0.8 }}>Ключевые факторы:</p>
-                            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {selected.factors.map((factor, idx) => (
-                                <li key={idx} style={{ fontFamily: FONT, fontSize: 14, color: 'var(--text-muted)' }}>{factor}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
 
-                        {selected.recommendations && selected.recommendations.length > 0 && (
-                          <div>
-                            <p style={{ fontFamily: FONT, fontSize: 12, fontWeight: 700, color: 'var(--text-1)', marginBottom: 8, opacity: 0.8 }}>Рекомендации:</p>
-                            <ul style={{ margin: 0, paddingLeft: 16, display: 'flex', flexDirection: 'column', gap: 6 }}>
-                              {selected.recommendations.map((rec, idx) => (
-                                <li key={idx} style={{ fontFamily: FONT, fontSize: 14, color: 'var(--text-muted)' }}>{rec}</li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                      </div>
-                      {selected.risk > 66 && (
-                        <motion.div
-                          initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }}
-                          style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '14px 18px', borderRadius: 14, background: 'rgba(248,113,113,0.08)', border: '1px solid rgba(248,113,113,0.2)' }}
-                        >
-                          <AlertTriangle size={18} style={{ color: 'var(--red)' }} />
-                          <p style={{ fontFamily: FONT, fontSize: 14, fontWeight: 700, color: 'var(--red)' }}>Рекомендуется немедленное вмешательство экологических служб!</p>
-                        </motion.div>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            )}
-          </AnimatePresence>
 
           {/* Table */}
           <div style={{ borderRadius: 20, overflow: 'hidden', background: 'var(--bg-card)', border: '1px solid var(--border)' }}>
