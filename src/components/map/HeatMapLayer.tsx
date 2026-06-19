@@ -26,6 +26,13 @@ function distKm(lat1: number, lng1: number, lat2: number, lng2: number): number 
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
+/** Pollution level → weight multiplier */
+const pollutionWeight: Record<string, number> = {
+  high:   3.0,
+  medium: 2.0,
+  low:    1.0,
+};
+
 /** Cluster radius: reports within this distance count as neighbours */
 const RADIUS_KM = 100;
 
@@ -45,17 +52,25 @@ export default function HeatMapLayer({ reports }: HeatMapLayerProps) {
 
     if (reports.length === 0) return;
 
-    // Count neighbours for each point (including itself → min density = 1)
+    // Weight of each individual report based on its pollution level and risk score
+    const reportWeight = (r: Report): number => {
+      const pollW = pollutionWeight[r.ai_pollution_level ?? 'low'] ?? 1.0;
+      // risk_score is 0-100, normalize to 0.5-1.5 range as additional multiplier
+      const riskW = r.risk_score > 0 ? 0.5 + (r.risk_score / 100) : 1.0;
+      return pollW * riskW;
+    };
+
+    // Weighted density: sum of neighbour weights within RADIUS_KM
     const density = reports.map((r) =>
       reports.reduce((sum, other) => {
         const d = distKm(r.latitude, r.longitude, other.latitude, other.longitude);
-        return d <= RADIUS_KM ? sum + 1 : sum;
+        return d <= RADIUS_KM ? sum + reportWeight(other) : sum;
       }, 0)
     );
 
-    const maxDensity = Math.max(...density);
+    const maxDensity = Math.max(...density, 1);
 
-    // Build [lat, lng, intensity] — intensity = raw count, max = maxDensity
+    // Build [lat, lng, intensity] — intensity is weighted density
     const points = reports.map((r, i) => [r.latitude, r.longitude, density[i]]);
 
     const L = window.L;
@@ -66,15 +81,15 @@ export default function HeatMapLayer({ reports }: HeatMapLayerProps) {
       radius: 60,
       blur: 50,
       maxZoom: 18,
-      max: maxDensity,        // 1 isolated point → cold end; densest cluster → hot end
-      minOpacity: 0.5,
+      max: maxDensity,
+      minOpacity: 0.4,
       gradient: {
-        0.0:  '#1e40af', // deep blue  — 1 isolated point
-        0.25: '#0ea5e9', // sky blue   — small cluster
-        0.50: '#22c55e', // green
-        0.70: '#fbbf24', // amber
-        0.85: '#f97316', // orange
-        1.0:  '#ef4444', // red        — densest cluster
+        0.0:  '#1e40af', // deep blue  — isolated low-risk
+        0.25: '#0ea5e9', // sky blue   — small/low cluster
+        0.50: '#22c55e', // green      — moderate
+        0.70: '#fbbf24', // amber      — notable
+        0.85: '#f97316', // orange     — high
+        1.0:  '#ef4444', // red        — critical cluster
       },
     });
 
