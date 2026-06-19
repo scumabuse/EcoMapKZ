@@ -33,3 +33,5 @@ dist-ssr
 
 # Temp Repos
 temp_repo/
+.vercel
+.env*
